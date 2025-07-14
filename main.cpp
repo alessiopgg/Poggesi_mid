@@ -6,8 +6,9 @@ int main() {
     Dataset ds;
 
     // Percorso del file CSV
-    std::string filename = "C:/Users/Alessio/Documents/Projects/Poggesi_mid/data/N10000_K4.csv";
-    int k = 4;     // numero di centroidi
+    std::string filename = "C:/Users/Alessio/Documents/Projects/Poggesi_mid/data/N50000_K12.csv";
+    int k = 12;     // numero di centroidi
+    int max_iters = 1000;
 
     // Carica i punti
     if (!ds.load_from_csv(filename)) {
@@ -24,7 +25,7 @@ int main() {
     KMeansSequential model(ds.get_points(), ds.get_centroids());
 
     // Avvia l'algoritmo di clustering
-    model.fit(k);
+    model.fit(k, max_iters);
 
     // Mostra i centroidi finali
     model.print_centroids();
