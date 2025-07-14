@@ -1,0 +1,3 @@
+C:/Users/Alessio/Documents/Projects/Poggesi_mid/cmake-build-debug/CMakeFiles/Poggesi_mid.dir
+C:/Users/Alessio/Documents/Projects/Poggesi_mid/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Alessio/Documents/Projects/Poggesi_mid/cmake-build-debug/CMakeFiles/rebuild_cache.dir
