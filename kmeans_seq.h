@@ -6,7 +6,7 @@ public:
     KMeansSequential(const std::vector<Point>& input_points, const std::vector<Point>& initial_centroids);
     void assign_clusters() override;
     void update_centroids() override;
-    void fit(int k, int max_iters) override;
+    void fit(int k);
     void print_centroids() const override;
 
 private:

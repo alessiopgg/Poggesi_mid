@@ -55,10 +55,27 @@ void KMeansSequential::update_centroids() {
 }
 
 // Esegue tutto il ciclo K-means
-void KMeansSequential::fit(int k, int max_iters) {
-    for (int iter = 0; iter < max_iters; ++iter) {
+void KMeansSequential::fit(int k_) {
+    k = k_;
+
+    const double epsilon = 1e-8;  // soglia molto piccola → convergenza reale
+    bool converged = false;
+
+    while (!converged) {
         assign_clusters();
+
+        std::vector<Point> old_centroids = centroids;
+
         update_centroids();
+
+        converged = true;
+        for (int i = 0; i < k; ++i) {
+            if (centroids[i].x != old_centroids[i].x ||
+                centroids[i].y != old_centroids[i].y) {
+                converged = false;
+                break;
+            }
+        }
     }
 }
 
