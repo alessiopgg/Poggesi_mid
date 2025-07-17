@@ -16,6 +16,11 @@ else()
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 endif()
 
+# Flags per Release – ATTENZIONE: qui attiviamo ottimizzazioni e vettorizzazione
+if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -ftree-vectorize -fopenmp")
+endif()
+
 # Cerca OpenMP
 find_package(OpenMP REQUIRED)
 
@@ -25,14 +30,14 @@ include_directories(include)
 # Lista dei sorgenti
 set(SOURCES
         main.cpp
+        #main_test.cpp
         base_kmeans.h
         kmeans_seq.cpp
         kmeans_seq.h
         kmeans_omp.cpp
         kmeans_omp.h
         dataset.cpp
-        dataset.h
-        )
+        dataset.h)
 
 # Crea l'eseguibile
 add_executable(Poggesi_mid ${SOURCES})
