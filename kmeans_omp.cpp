@@ -13,14 +13,25 @@ KMeansOpenMP::KMeansOpenMP(const std::vector<Point>& input_points,
 
 // FASE 1 – Parallelizzata con OpenMP
 void KMeansOpenMP::assign_clusters() {
+    std::vector<double> centroid_x(k);
+    std::vector<double> centroid_y(k);
+
+    // Copia i centroidi separando x e y (SoA)
+    for (int j = 0; j < k; ++j) {
+        centroid_x[j] = centroids[j].x;
+        centroid_y[j] = centroids[j].y;
+    }
+
 #pragma omp parallel for
     for (int i = 0; i < static_cast<int>(points.size()); ++i) {
         double min_dist = std::numeric_limits<double>::max();
         int best_cluster = -1;
+        double px = points[i].x;
+        double py = points[i].y;
 
         for (int j = 0; j < k; ++j) {
-            double dx = points[i].x - centroids[j].x;
-            double dy = points[i].y - centroids[j].y;
+            double dx = px - centroid_x[j];
+            double dy = py - centroid_y[j];
             double dist = dx * dx + dy * dy;
 
             if (dist < min_dist) {
@@ -79,7 +90,6 @@ void KMeansOpenMP::update_centroids() {
         }
     }
 
-
     centroids = new_centroids;
 }
 
@@ -95,6 +105,7 @@ void KMeansOpenMP::fit(int k_) {
         std::vector<Point> old_centroids = centroids;
 
         update_centroids();
+        std::cout << "iter\n";
 
         converged = true;
         for (int i = 0; i < k; ++i) {
