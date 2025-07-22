@@ -49,8 +49,8 @@ cmake_ninja_workdir = C$:/Users/Alessio/Documents/Projects/Poggesi_mid/cmake-bui
 
 build cmake_object_order_depends_target_Poggesi_mid: phony || CMakeFiles/Poggesi_mid.dir
 
-build CMakeFiles/Poggesi_mid.dir/main.cpp.obj: CXX_COMPILER__Poggesi_mid_Debug C$:/Users/Alessio/Documents/Projects/Poggesi_mid/main.cpp || cmake_object_order_depends_target_Poggesi_mid
-  DEP_FILE = CMakeFiles\Poggesi_mid.dir\main.cpp.obj.d
+build CMakeFiles/Poggesi_mid.dir/main_test.cpp.obj: CXX_COMPILER__Poggesi_mid_Debug C$:/Users/Alessio/Documents/Projects/Poggesi_mid/main_test.cpp || cmake_object_order_depends_target_Poggesi_mid
+  DEP_FILE = CMakeFiles\Poggesi_mid.dir\main_test.cpp.obj.d
   FLAGS = -O0 -g -fopenmp -std=gnu++1z
   INCLUDES = -IC:/Users/Alessio/Documents/Projects/Poggesi_mid/include
   OBJECT_DIR = CMakeFiles\Poggesi_mid.dir
@@ -85,7 +85,7 @@ build CMakeFiles/Poggesi_mid.dir/dataset.cpp.obj: CXX_COMPILER__Poggesi_mid_Debu
 #############################################
 # Link the executable Poggesi_mid.exe
 
-build Poggesi_mid.exe: CXX_EXECUTABLE_LINKER__Poggesi_mid_Debug CMakeFiles/Poggesi_mid.dir/main.cpp.obj CMakeFiles/Poggesi_mid.dir/kmeans_seq.cpp.obj CMakeFiles/Poggesi_mid.dir/kmeans_omp.cpp.obj CMakeFiles/Poggesi_mid.dir/dataset.cpp.obj | C$:/mingw64/lib/gcc/x86_64-w64-mingw32/7.3.0/libgomp.dll.a C$:/mingw64/x86_64-w64-mingw32/lib/libmingwthrd.a
+build Poggesi_mid.exe: CXX_EXECUTABLE_LINKER__Poggesi_mid_Debug CMakeFiles/Poggesi_mid.dir/main_test.cpp.obj CMakeFiles/Poggesi_mid.dir/kmeans_seq.cpp.obj CMakeFiles/Poggesi_mid.dir/kmeans_omp.cpp.obj CMakeFiles/Poggesi_mid.dir/dataset.cpp.obj | C$:/mingw64/lib/gcc/x86_64-w64-mingw32/7.3.0/libgomp.dll.a C$:/mingw64/x86_64-w64-mingw32/lib/libmingwthrd.a
   FLAGS = -O0 -g
   LINK_LIBRARIES = C:/mingw64/lib/gcc/x86_64-w64-mingw32/7.3.0/libgomp.dll.a  C:/mingw64/x86_64-w64-mingw32/lib/libmingwthrd.a  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\Poggesi_mid.dir
