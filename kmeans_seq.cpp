@@ -66,7 +66,6 @@ void KMeansSequential::fit(int k_) {
         std::vector<Point> old_centroids = centroids;
 
         update_centroids();
-        std::cout << "iter\n";
 
         converged = true;
         for (int i = 0; i < k; ++i) {

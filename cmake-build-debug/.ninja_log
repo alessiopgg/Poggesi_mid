@@ -1,8 +1,10 @@
 # ninja log v5
 7	1174	7748032805513956	CMakeFiles/Poggesi_mid.dir/main.cpp.obj	29653242ac1dce35
-1175	1617	7748032809923975	Poggesi_mid.exe	2003a41f8e76fb7f
+494	686	7748841321653033	Poggesi_mid.exe	beda5db3882383a3
 7	581	7748015006668359	CMakeFiles/Poggesi_mid.dir/kmeans_omp.cpp.obj	d771d2294978ce3c
-8	700	7744472783932374	CMakeFiles/Poggesi_mid.dir/kmeans_seq.cpp.obj	3df3dfc48992b0a4
+6	494	7748841319771027	CMakeFiles/Poggesi_mid.dir/kmeans_seq.cpp.obj	3df3dfc48992b0a4
 7	540	7744478674566743	CMakeFiles/Poggesi_mid.dir/dataset.cpp.obj	ae73f86fcdf16170
-3	383	7745365049132814	CMakeFiles/Poggesi_mid.dir/main_test.cpp.obj	c43edc2d0e86c7f3
-0	144	7748814920333184	build.ninja	98be3069db6b75fb
+3	446	7748841319271033	CMakeFiles/Poggesi_mid.dir/main_test.cpp.obj	c43edc2d0e86c7f3
+0	144	7748982270484846	build.ninja	98be3069db6b75fb
+3	452	7748982278194252	CMakeFiles/Poggesi_mid.dir/main.cpp.obj	29653242ac1dce35
+453	679	7748982280420030	Poggesi_mid.exe	2003a41f8e76fb7f

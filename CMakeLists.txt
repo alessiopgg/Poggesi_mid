@@ -29,8 +29,7 @@ include_directories(include)
 
 # Lista dei sorgenti
 set(SOURCES
-        #main.cpp
-        main_test.cpp
+        main.cpp
         base_kmeans.h
         kmeans_seq.cpp
         kmeans_seq.h
