@@ -6,7 +6,7 @@
 class Dataset {
 public:
     bool load_from_csv(const std::string& filename);
-    void init_centroids(int k, int seed = 24);
+    void init_centroids(int k, int seed = 42);
     void print_centroids() const;
 
     const std::vector<Point>& get_points() const { return points; }
