@@ -2,9 +2,6 @@
 #include <vector>
 #include <string>
 
-struct Point {
-    double x, y;
-};
 
 class BaseKMeans {
 public:

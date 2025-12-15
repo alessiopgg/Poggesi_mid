@@ -2,7 +2,6 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <numeric>
 #include <algorithm>
 #include <cmath>
 #include <omp.h>
@@ -32,11 +31,11 @@ struct Stats {
 Stats compute_stats(const std::vector<double>& v) {
     double sum = 0.0;
     for (double x : v) sum += x;
-    double mean = sum / v.size();
+    double mean = sum / static_cast<double>(v.size());
 
     double var = 0.0;
     for (double x : v) var += (x - mean) * (x - mean);
-    var /= v.size();
+    var /= static_cast<double>(v.size());
     double stddev = std::sqrt(var);
 
     double minv = *std::min_element(v.begin(), v.end());
@@ -49,16 +48,16 @@ Stats compute_stats(const std::vector<double>& v) {
 // PARALLELIZATION PARAMETERS
 // =========================
 std::vector<std::string> SCHEDULES = {"static", "dynamic"};
-std::vector<int> CHUNKS = {0, 32, 128};
+std::vector<int> CHUNKS = {0, 1, 32, 128};
 std::vector<int> THREAD_LIST = {1, 2, 4, 8, 16, 32};
 
 std::vector<std::string> filenames = {
-        "N10000_K6.csv", "N10000_K10.csv", "N10000_K20.csv",
-        "N50000_K6.csv", "N50000_K10.csv", "N50000_K20.csv",
-        "N100000_K6.csv", "N100000_K10.csv", "N100000_K20.csv",
-        "N300000_K6.csv", "N300000_K10.csv", "N300000_K20.csv",
-        "N500000_K6.csv", "N500000_K10.csv", "N500000_K20.csv",
-        "N1000000_K6.csv", "N1000000_K10.csv", "N1000000_K20.csv"
+        "N10000_K6.csv",   "N10000_K10.csv",  "N10000_K20.csv",
+        "N50000_K6.csv",   "N50000_K10.csv",  "N50000_K20.csv",
+        "N100000_K6.csv",  "N100000_K10.csv", "N100000_K20.csv",
+        "N300000_K6.csv",  "N300000_K10.csv", "N300000_K20.csv",
+        "N500000_K6.csv",  "N500000_K10.csv", "N500000_K20.csv",
+        "N1000000_K6.csv", "N1000000_K10.csv","N1000000_K20.csv"
 };
 
 const int NUM_RUNS = 5;
@@ -77,18 +76,20 @@ int main() {
         return 1;
     }
 
-    // CSV HEADER
+    // CSV HEADER (include iters)
     out << "layout,n_points,k,threads,schedule,chunk,"
            "seq_mean,seq_std,seq_min,seq_max,"
-           "omp_mean,omp_std,omp_min,omp_max\n";
+           "omp_mean,omp_std,omp_min,omp_max,"
+           "seq_it_mean,seq_it_min,seq_it_max,"
+           "omp_it_mean,omp_it_min,omp_it_max\n";
 
-    // MEMORY LAYOUTS TO TEST
     std::vector<std::string> LAYOUTS = {"AoS", "SoA"};
 
     for (const auto& file : filenames) {
         std::cout << "\n=== FILE: " << file << " ===\n";
 
-        int n_points, k;
+        int n_points = 0;
+        int k = 0;
         if (sscanf(file.c_str(), "N%d_K%d.csv", &n_points, &k) != 2) {
             std::cerr << "Errore parsing nome file!\n";
             continue;
@@ -108,19 +109,19 @@ int main() {
                                   << ", sched=" << sched
                                   << ", chunk=" << chunk << "\n";
 
+                        // Per questa combinazione: raccogli tempi e iterazioni
                         std::vector<double> seq_times;
                         std::vector<double> omp_times;
+                        std::vector<double> seq_iters;
+                        std::vector<double> omp_iters;
 
+                        // Apply scheduling policy (runtime schedule used inside pragmas)
                         omp_sched_t kind = omp_sched_static;
                         if (sched == "dynamic") kind = omp_sched_dynamic;
-                        // se poi aggiungi "guided": kind = omp_sched_guided;
-
-                        omp_set_schedule(kind, chunk); // chunk può essere 0: significa "default" per quel kind
-
+                        omp_set_schedule(kind, chunk); // chunk=0 => default
 
                         // MULTIPLE RUNS (WITH WARM-UP)
                         for (int run = 0; run < NUM_RUNS; ++run) {
-
                             Dataset ds_seq, ds_omp;
                             if (!ds_seq.load_from_csv(full_path) ||
                                 !ds_omp.load_from_csv(full_path)) {
@@ -128,8 +129,12 @@ int main() {
                                 break;
                             }
 
+                            // Seed deterministico: stesso init per seq e omp nello stesso run
+                            // (così confronti tempi senza rumore da centroidi diversi)
+                            int seed = 12345 + run;
+
                             // SEQUENTIAL
-                            ds_seq.init_centroids(k);
+                            ds_seq.init_centroids(k, seed);
                             KMeansSequential model_seq(
                                     ds_seq.get_points(),
                                     ds_seq.get_centroids()
@@ -138,10 +143,12 @@ int main() {
                             double t0 = get_time_in_ms();
                             model_seq.fit(k);
                             double t1 = get_time_in_ms();
+                            int it_seq = model_seq.get_last_iterations();
 
                             // PARALLEL
-                            ds_omp.init_centroids(k);
-                            double p0, p1;
+                            ds_omp.init_centroids(k, seed);
+                            double p0 = 0.0, p1 = 0.0;
+                            int it_omp = 0;
 
                             if (layout == "AoS") {
                                 KMeansOpenMP_AoS model_omp(
@@ -151,28 +158,35 @@ int main() {
                                 p0 = get_time_in_ms();
                                 model_omp.fit(k);
                                 p1 = get_time_in_ms();
+                                it_omp = model_omp.get_last_iterations();
                             } else { // SoA
                                 KMeansOpenMP_SoA model_omp(
-                                        ds_omp.get_points(),
+                                        ds_omp.get_points_soa(),
                                         ds_omp.get_centroids()
                                 );
                                 p0 = get_time_in_ms();
                                 model_omp.fit(k);
                                 p1 = get_time_in_ms();
+                                it_omp = model_omp.get_last_iterations();
                             }
 
+                            // Store results (skip warmup)
                             if (run >= WARMUP_RUNS) {
                                 seq_times.push_back(t1 - t0);
                                 omp_times.push_back(p1 - p0);
+                                seq_iters.push_back(static_cast<double>(it_seq));
+                                omp_iters.push_back(static_cast<double>(it_omp));
                             }
                         }
 
-                        // WRITE RESULTS
-                        if (seq_times.size() == NUM_RUNS - WARMUP_RUNS &&
-                            omp_times.size() == NUM_RUNS - WARMUP_RUNS) {
+                        // WRITE RESULTS if complete
+                        if (seq_times.size() == static_cast<size_t>(NUM_RUNS - WARMUP_RUNS) &&
+                            omp_times.size() == static_cast<size_t>(NUM_RUNS - WARMUP_RUNS)) {
 
                             Stats seq_s = compute_stats(seq_times);
                             Stats omp_s = compute_stats(omp_times);
+                            Stats seq_i = compute_stats(seq_iters);
+                            Stats omp_i = compute_stats(omp_iters);
 
                             out << layout << ","
                                 << n_points << ","
@@ -187,7 +201,13 @@ int main() {
                                 << omp_s.mean << ","
                                 << omp_s.stddev << ","
                                 << omp_s.min << ","
-                                << omp_s.max << "\n";
+                                << omp_s.max << ","
+                                << seq_i.mean << ","
+                                << seq_i.min << ","
+                                << seq_i.max << ","
+                                << omp_i.mean << ","
+                                << omp_i.min << ","
+                                << omp_i.max << "\n";
                         }
                     }
                 }

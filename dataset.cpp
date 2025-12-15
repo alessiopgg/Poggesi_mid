@@ -5,6 +5,7 @@
 #include <random>
 #include <ctime>
 
+
 bool Dataset::load_from_csv(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -16,14 +17,20 @@ bool Dataset::load_from_csv(const std::string& filename) {
     std::getline(file, line); // salta intestazione
 
     points.clear();
+    points_soa.clear(); // NEW
+
     while (std::getline(file, line)) {
         std::stringstream ss(line);
         std::string x_str, y_str;
         std::getline(ss, x_str, ',');
         std::getline(ss, y_str, ',');
 
-        Point p{std::stod(x_str), std::stod(y_str)};
-        points.push_back(p);
+        double x = std::stod(x_str);
+        double y = std::stod(y_str);
+
+        points.push_back(Point{x, y});     // AoS
+        points_soa.x.push_back(x);         // SoA
+        points_soa.y.push_back(y);         // SoA
     }
 
     return true;

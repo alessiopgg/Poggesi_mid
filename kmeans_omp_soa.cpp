@@ -4,33 +4,34 @@
 #include <cmath>
 #include <omp.h>
 
-KMeansOpenMP_SoA::KMeansOpenMP_SoA(const std::vector<Point>& input_points,
+KMeansOpenMP_SoA::KMeansOpenMP_SoA(const PointsSoA& input_points,
                                    const std::vector<Point>& initial_centroids)
         : points(input_points),
           centroids(initial_centroids),
+          centroid_x(initial_centroids.size()),
+          centroid_y(initial_centroids.size()),
           k(static_cast<int>(initial_centroids.size())),
-          labels(input_points.size(), -1) {}
-
-// FASE 1 – Parallelizzata con OpenMP + Vettorizzata (SIMD)
-void KMeansOpenMP_SoA::assign_clusters() {
-    std::vector<double> centroid_x(k);
-    std::vector<double> centroid_y(k);
-
-    // Copia i centroidi separando x e y (Structure of Arrays)
+          labels(input_points.size(), -1)
+{
     for (int j = 0; j < k; ++j) {
         centroid_x[j] = centroids[j].x;
         centroid_y[j] = centroids[j].y;
     }
+}
 
-#pragma omp parallel for schedule(runtime) default(none) shared(points, centroid_x, centroid_y, labels, k)
+
+// FASE 1 – Parallelizzata con OpenMP + Vettorizzata (SIMD)
+void KMeansOpenMP_SoA::assign_clusters() {
+#pragma omp parallel for schedule(runtime) default(none) shared(labels) shared(points, centroid_x, centroid_y, k)
     for (int i = 0; i < static_cast<int>(points.size()); ++i) {
+        double px = points.x[i];
+        double py = points.y[i];
+
         double min_dist = std::numeric_limits<double>::max();
         int best_cluster = -1;
-        double px = points[i].x;
-        double py = points[i].y;
 
-        // Vettorizzazione esplicita del ciclo su k (centroidi)
-#pragma omp simd
+        // Nota: il pragma omp simd con "min_dist/best_cluster" è delicato.
+        // Per ora lasciamo il loop normale (corretto e stabile).
         for (int j = 0; j < k; ++j) {
             double dx = px - centroid_x[j];
             double dy = py - centroid_y[j];
@@ -46,75 +47,90 @@ void KMeansOpenMP_SoA::assign_clusters() {
     }
 }
 
+
 // FASE 2 – Parallelizzazione multithread, non SIMD (per via di accessi indiretti)
 void KMeansOpenMP_SoA::update_centroids() {
-    std::vector<std::vector<Point>> local_sums;
-    std::vector<std::vector<int>> local_counts;
     int num_threads = omp_get_max_threads();
 
-    local_sums.resize(num_threads, std::vector<Point>(k, {0.0, 0.0}));
-    local_counts.resize(num_threads, std::vector<int>(k, 0));
+    std::vector<std::vector<double>> local_sum_x(num_threads, std::vector<double>(k, 0.0));
+    std::vector<std::vector<double>> local_sum_y(num_threads, std::vector<double>(k, 0.0));
+    std::vector<std::vector<int>>    local_count(num_threads, std::vector<int>(k, 0));
 
-    int tid;
-
-#pragma omp parallel default(none) shared(points, labels, local_sums, local_counts, k) private(tid)
+#pragma omp parallel default(none) shared(local_sum_x, local_sum_y, local_count, labels, points, k)
     {
-        tid = omp_get_thread_num();
-        std::vector<Point>& sums = local_sums[tid];
-        std::vector<int>& counts = local_counts[tid];
+        int tid = omp_get_thread_num();
+        auto& sx = local_sum_x[tid];
+        auto& sy = local_sum_y[tid];
+        auto& ct = local_count[tid];
 
 #pragma omp for schedule(runtime)
         for (size_t i = 0; i < points.size(); ++i) {
-            int cluster = labels[i];
-            sums[cluster].x += points[i].x;
-            sums[cluster].y += points[i].y;
-            counts[cluster]++;
+            int c = labels[i];
+            sx[c] += points.x[i];
+            sy[c] += points.y[i];
+            ct[c] += 1;
         }
     }
 
-    std::vector<Point> new_centroids(k, {0.0, 0.0});
+    std::vector<double> sum_x(k, 0.0), sum_y(k, 0.0);
     std::vector<int> count(k, 0);
 
     for (int t = 0; t < num_threads; ++t) {
         for (int j = 0; j < k; ++j) {
-            new_centroids[j].x += local_sums[t][j].x;
-            new_centroids[j].y += local_sums[t][j].y;
-            count[j] += local_counts[t][j];
+            sum_x[j] += local_sum_x[t][j];
+            sum_y[j] += local_sum_y[t][j];
+            count[j] += local_count[t][j];
         }
     }
 
-    // (Facoltativo) vettorizzazione del calcolo delle medie finali
-#pragma omp parallel for simd schedule(runtime) default(none) shared(count, new_centroids, k)
+#pragma omp parallel for schedule(runtime) default(none) shared(sum_x, sum_y, count, k, centroid_x, centroid_y)
     for (int j = 0; j < k; ++j) {
         if (count[j] > 0) {
-            new_centroids[j].x /= count[j];
-            new_centroids[j].y /= count[j];
+            centroid_x[j] = sum_x[j] / count[j];
+            centroid_y[j] = sum_y[j] / count[j];
         }
     }
 
-    centroids = new_centroids;
+    // aggiorno anche la versione AoS per print/convergenza
+    for (int j = 0; j < k; ++j) {
+        centroids[j].x = centroid_x[j];
+        centroids[j].y = centroid_y[j];
+    }
 }
+
 
 void KMeansOpenMP_SoA::fit(int k_) {
     k = k_;
-    bool converged = false;
 
-    while (!converged) {
+    const int max_iters = 600;   // <-- alzato
+    const double eps = 1e-6;
+    const double eps2 = eps * eps;
+
+    last_iters_ = 0;
+
+    for (int it = 0; it < max_iters; ++it) {
         assign_clusters();
 
-        std::vector<Point> old_centroids = centroids;
+        std::vector<double> old_x = centroid_x;
+        std::vector<double> old_y = centroid_y;
+
         update_centroids();
 
-        converged = true;
-        for (int i = 0; i < k; ++i) {
-            if (centroids[i].x != old_centroids[i].x ||
-                centroids[i].y != old_centroids[i].y) {
-                converged = false;
-                break;
-            }
+        double max_shift = 0.0;
+        for (int j = 0; j < k; ++j) {
+            double dx = centroid_x[j] - old_x[j];
+            double dy = centroid_y[j] - old_y[j];
+            double shift = dx * dx + dy * dy;
+            if (shift > max_shift) max_shift = shift;
         }
+
+        last_iters_ = it + 1;          // <-- quante iterazioni ho fatto davvero
+        if (max_shift < eps2) break;
     }
 }
+
+
+
 
 void KMeansOpenMP_SoA::print_centroids() const {
     std::cout << "Centroidi finali (OpenMP):\n";
