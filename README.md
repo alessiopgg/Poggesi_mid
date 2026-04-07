@@ -57,7 +57,6 @@ CMake configuration
 The project defines three executables:
 `Poggesi_mid` → benchmark program
 `Poggesi_mid_correctness` → correctness checker
-`Poggesi_mid_demo` → scheduling/trace demo
 Important notes from `CMakeLists.txt`:
 default build type: Debug
 recommended build type for benchmarks: Release
