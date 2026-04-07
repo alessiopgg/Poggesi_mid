@@ -10,6 +10,8 @@ public:
     void fit(int k);
     void print_centroids() const override;
     int get_last_iterations() const { return last_iters_; }
+    const std::vector<Point>& get_centroids() const { return centroids; }
+    const std::vector<int>&   get_labels()   const { return labels; }
 
 
 private:

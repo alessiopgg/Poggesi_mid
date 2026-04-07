@@ -13,28 +13,53 @@ bool Dataset::load_from_csv(const std::string& filename) {
         return false;
     }
 
-    std::string line;
-    std::getline(file, line); // salta intestazione
-
     points.clear();
-    points_soa.clear(); // NEW
+    points_soa.clear();
 
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
+    std::string line;
+
+    auto try_parse_xy = [&](const std::string& s, double& x, double& y) -> bool {
+        std::stringstream ss(s);
         std::string x_str, y_str;
-        std::getline(ss, x_str, ',');
-        std::getline(ss, y_str, ',');
 
-        double x = std::stod(x_str);
-        double y = std::stod(y_str);
+        if (!std::getline(ss, x_str, ',')) return false;
+        if (!std::getline(ss, y_str, ',')) return false;
 
-        points.push_back(Point{x, y});     // AoS
-        points_soa.x.push_back(x);         // SoA
-        points_soa.y.push_back(y);         // SoA
+        try {
+            x = std::stod(x_str);
+            y = std::stod(y_str);
+            return true;
+        } catch (...) {
+            return false;
+        }
+    };
+
+    // Leggi la prima riga: può essere header oppure dati
+    if (std::getline(file, line)) {
+        double x, y;
+        if (try_parse_xy(line, x, y)) {
+            // Prima riga era già un punto (niente header)
+            points.push_back(Point{x, y});
+            points_soa.x.push_back(x);
+            points_soa.y.push_back(y);
+        }
+        // altrimenti era header: ignora e continua
     }
 
-    return true;
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+
+        double x, y;
+        if (!try_parse_xy(line, x, y)) continue; // salta righe malformate
+
+        points.push_back(Point{x, y});
+        points_soa.x.push_back(x);
+        points_soa.y.push_back(y);
+    }
+
+    return !points.empty();
 }
+
 
 void Dataset::init_centroids(int k, int seed) {
     std::mt19937 rng(seed);

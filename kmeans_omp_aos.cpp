@@ -97,9 +97,7 @@ void KMeansOpenMP_AoS::update_centroids() {
 }
 
 
-// ------------------------------------------------------------
-// Fit with max iterations + epsilon (stable for benchmarks)
-// ------------------------------------------------------------
+
 void KMeansOpenMP_AoS::fit(int k_) {
     k = k_;
 

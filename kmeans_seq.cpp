@@ -49,6 +49,10 @@ void KMeansSequential::update_centroids() {
             new_centroids[j].x /= count[j];
             new_centroids[j].y /= count[j];
         }
+        else {
+            // cluster vuoto: mantieni il centroide precedente
+            new_centroids[j] = centroids[j];
+        }
     }
 
     centroids = new_centroids;//assegno il nuovo centroide

@@ -20,7 +20,6 @@ KMeansOpenMP_SoA::KMeansOpenMP_SoA(const PointsSoA& input_points,
 }
 
 
-// FASE 1 – Parallelizzata con OpenMP + Vettorizzata (SIMD)
 void KMeansOpenMP_SoA::assign_clusters() {
 #pragma omp parallel for schedule(runtime) default(none) shared(labels) shared(points, centroid_x, centroid_y, k)
     for (int i = 0; i < static_cast<int>(points.size()); ++i) {
@@ -30,8 +29,7 @@ void KMeansOpenMP_SoA::assign_clusters() {
         double min_dist = std::numeric_limits<double>::max();
         int best_cluster = -1;
 
-        // Nota: il pragma omp simd con "min_dist/best_cluster" è delicato.
-        // Per ora lasciamo il loop normale (corretto e stabile).
+
         for (int j = 0; j < k; ++j) {
             double dx = px - centroid_x[j];
             double dy = py - centroid_y[j];

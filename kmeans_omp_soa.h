@@ -1,3 +1,5 @@
+#pragma once
+
 #include "dataset.h"   // per PointsSoA e Point
 #include "base_kmeans.h"
 #include <vector>
@@ -23,5 +25,7 @@ public:
     void fit(int k_) override;
     void print_centroids() const override;
     int get_last_iterations() const { return last_iters_; }
+    const std::vector<Point>& get_centroids() const { return centroids; }
+    const std::vector<int>&   get_labels()   const { return labels; }
 
 };
