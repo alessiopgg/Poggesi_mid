@@ -1,8 +1,4 @@
-
-````markdown
 # K-Means Clustering with OpenMP
-
-## Short README
 
 This project implements and compares three versions of K-Means clustering in C++17:
 
