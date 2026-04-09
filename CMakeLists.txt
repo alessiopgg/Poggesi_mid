@@ -60,19 +60,9 @@ add_executable(Poggesi_mid_correctness
         )
 
 # =========================
-# Executable: demo trace (GIF/MP4 trace exporter)
-# =========================
-add_executable(Poggesi_mid_demo
-        main_demo_trace.cpp
-        ${CORE_SOURCES}
-        )
-
-
-# =========================
 # Link OpenMP
 # =========================
 if(OpenMP_CXX_FOUND)
     target_link_libraries(Poggesi_mid PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(Poggesi_mid_correctness PUBLIC OpenMP::OpenMP_CXX)
-    target_link_libraries(Poggesi_mid_demo PUBLIC OpenMP::OpenMP_CXX)
 endif()

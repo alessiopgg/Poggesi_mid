@@ -1,0 +1,138 @@
+# generate_blobs.py
+# Blob datasets (scikit-learn make_blobs) -> CSV compatibili col loader C++ (x,y con header)
+
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.datasets import make_blobs
+
+# =========================
+# CONFIG
+# =========================
+
+# Cartella ESATTA usata dal main.cpp:
+#   std::string base_path = "C:/Users/Alessio/Documents/Projects/Poggesi_mid/data/";
+BASE_OUTPUT_DIR = r"C:/Users/Alessio/Documents/Projects/Poggesi_mid/data/"
+
+PLOT_DIR = os.path.join(BASE_OUTPUT_DIR, "plots")
+LABEL_DIR = os.path.join(BASE_OUTPUT_DIR, "labels")
+
+# Stessi N e K che stai testando nel main
+Ns = [10_000, 50_000, 100_000, 300_000, 500_000, 1_000_000]
+Ks = [6, 10, 20]
+
+# Spazio in cui scegliere i centri dei blob (2D)
+SPACE_RANGE = 100.0
+CENTER_BOX = (-SPACE_RANGE, SPACE_RANGE)
+
+# Quanto sono “larghi” i cluster (più alto => più overlap)
+CLUSTER_STD = 10.0
+
+# Riproducibilità (dataset sempre uguali a parità di N,K)
+BASE_SEED = 1234
+
+# Plot: campionamento massimo per non esplodere con 1M punti
+MAX_PLOT_POINTS = 20_000
+
+# Toggle: metti False se non ti servono
+SAVE_LABELS = True
+SAVE_PLOTS = True
+
+
+# =========================
+# HELPERS
+# =========================
+def seed_for(N: int, K: int) -> int:
+    """Seed deterministico per avere dataset identico per ogni (N,K)."""
+    return BASE_SEED + (N * 10) + K
+
+
+def save_xy_csv(X: np.ndarray, csv_path: str) -> None:
+    """
+    Salva CSV con header 'x,y' (IMPORTANTE: il loader C++ scarta la prima riga).
+    """
+    df = pd.DataFrame(X, columns=["x", "y"])
+    df.to_csv(csv_path, index=False)
+
+
+def save_labels(y: np.ndarray, label_path: str) -> None:
+    """
+    Salva le label in un file separato (non serve al C++, utile per valutazione/plot).
+    """
+    pd.DataFrame({"label": y}).to_csv(label_path, index=False)
+
+
+def save_plot(X: np.ndarray, y: np.ndarray, png_path: str) -> None:
+    """
+    Salva un plot scatter colorato per cluster (campiona se N è troppo grande).
+    """
+    n = X.shape[0]
+    if n > MAX_PLOT_POINTS:
+        rng = np.random.default_rng(123)
+        idx = rng.choice(n, size=MAX_PLOT_POINTS, replace=False)
+        Xp, yp = X[idx], y[idx]
+    else:
+        Xp, yp = X, y
+
+    plt.figure()
+    plt.scatter(Xp[:, 0], Xp[:, 1], s=2, c=yp)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.axis("equal")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(png_path, dpi=150)
+    plt.close()
+
+
+# =========================
+# MAIN
+# =========================
+def main() -> None:
+    os.makedirs(BASE_OUTPUT_DIR, exist_ok=True)
+    if SAVE_LABELS:
+        os.makedirs(LABEL_DIR, exist_ok=True)
+    if SAVE_PLOTS:
+        os.makedirs(PLOT_DIR, exist_ok=True)
+
+    for N in Ns:
+        for K in Ks:
+            seed = seed_for(N, K)
+
+            # make_blobs: genera K "nuvole" gaussiane in 2D
+            X, y = make_blobs(
+                n_samples=N,
+                centers=K,
+                n_features=2,
+                center_box=CENTER_BOX,
+                cluster_std=CLUSTER_STD,
+                random_state=seed,
+            )
+
+            # NOME FILE esatto richiesto dal tuo main: N{N}_K{K}.csv
+            fname = f"N{N}_K{K}"
+            csv_path = os.path.join(BASE_OUTPUT_DIR, f"{fname}.csv")
+
+            save_xy_csv(X, csv_path)
+
+            if SAVE_LABELS:
+                label_path = os.path.join(LABEL_DIR, f"{fname}_labels.csv")
+                save_labels(y, label_path)
+
+            if SAVE_PLOTS:
+                png_path = os.path.join(PLOT_DIR, f"{fname}.png")
+                save_plot(X, y, png_path)
+
+            extra = []
+            if SAVE_LABELS:
+                extra.append("labels")
+            if SAVE_PLOTS:
+                extra.append("plot")
+            extra_str = f" (+ {', '.join(extra)})" if extra else ""
+
+            print(f"Saved: {csv_path}{extra_str}")
+
+
+if __name__ == "__main__":
+    main()
