@@ -15,6 +15,8 @@ The repository includes:
 
 The goal of the project is to evaluate the impact of parallelization strategy and memory layout on K-Means performance in a shared-memory setting.
 
+For more details consulting: K_Means_Clustering versione_sequenziale_e_parallela_con_OpenMP.pdf and PARALLEL_MID_TERM
+
 ---
 
 ## Repository Structure
